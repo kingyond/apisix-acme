@@ -25,5 +25,5 @@ jobs:
       - name: Publish Docker
         run: |
           rm -rf dist
-          docker build --no-cache --rm --tag tmaize/apisix-acme:${{ github.ref_name }} .
-          docker push tmaize/apisix-acme:${{ github.ref_name }}
+          docker build --no-cache --rm --tag kingyond/apisix-acme:${{ github.ref_name }} .
+          docker push kingyond/apisix-acme:${{ github.ref_name }}
