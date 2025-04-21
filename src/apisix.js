@@ -199,27 +199,27 @@ async function listSSL(sni) {
 
 // 导入证书
 async function applySSL(domain, sslInfo) {
-  const sslList = await listSSL(domain)
-
-  const idList = []
-  sslList.forEach(item => {
-    if (item.validity_end < sslInfo.validity_end) {
-      idList.push(item.id)
-    }
-  })
-
-  if (idList.length == 0) {
-    idList.push(String(Date.now()))
+  const sslList = await listSSL(domain);
+  const version = await getVersion();
+  const idToKeep = String(Date.now());
+  
+  // 添加或更新证书
+  if (compareVersions(version, '3.0.0') >= 0) {
+    await v3.setupSsl(idToKeep, sslInfo);
+  } else {
+    await v2.setupSsl(idToKeep, sslInfo);
   }
 
-  const version = await getVersion()
-
-  for (let i = 0; i < idList.length; i++) {
-    const id = idList[i]
-    if (compareVersions(version, '3.0.0') >= 0) {
-      await v3.setupSsl(id, sslInfo)
-    } else {
-      await v2.setupSsl(id, sslInfo)
+  // 删除旧证书（排除刚刚创建的证书）
+  for (const item of sslList) {
+    if (item.id !== idToKeep) {
+      if (compareVersions(version, '3.0.0') >= 0) {
+        await v3.deleteSsl(item.id);
+        console.log(`删除旧证书: ${item.id} (domain: ${domain})`);
+      } else {
+        await v2.deleteSsl(item.id);
+        console.log(`删除旧证书: ${item.id} (domain: ${domain})`);
+      }
     }
   }
 }
