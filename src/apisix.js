@@ -221,44 +221,57 @@ async function listSSL(sni) {
 async function applySSL(domain, sslInfo) {
   const sslList = await listSSL(domain)
 
-  const idList = []
+  // 收集需要删除的旧证书 ID
+  const deleteIdList = []
   sslList.forEach(item => {
     if (item.validity_end < sslInfo.validity_end) {
-      idList.push(item.id)
+      deleteIdList.push(item.id)
     }
   })
 
-  if (idList.length == 0) {
-    idList.push(String(Date.now()))
-  }
-
+  // 删除所有旧证书
   const version = await getVersion()
-
-  for (let i = 0; i < idList.length; i++) {
-    const id = idList[i]
-    const save = {
-      snis: sslInfo.snis,
-      cert: sslInfo.cert,
-      key: sslInfo.key,
-      validity_start: sslInfo.validity_start,
-      validity_end: sslInfo.validity_end,
-      labels: {
-        acme: "ok",
-      },
-    }
-    if (compareVersions(version, '3.0.0') >= 0) {
-      // https://github.com/apache/apisix/pull/10323
-      // https://apisix.apache.org/zh/blog/2023/11/21/release-apache-apisix-3.7.0/
-      // 修复 invalid configuration: additional properties forbidden, found validity_end
-      if (compareVersions(version, '3.7.0') >= 0) {
-        delete save.validity_start
-        delete save.validity_end
+  for (let i = 0; i < deleteIdList.length; i++) {
+    try {
+      if (compareVersions(version, '3.0.0') >= 0) {
+        await v3.deleteSsl(deleteIdList[i])
+      } else {
+        await v2.deleteSsl(deleteIdList[i])
       }
-      await v3.setupSsl(id, save)
-    } else {
-      await v2.setupSsl(id, save)
+      console.log(`已删除旧证书: ${deleteIdList[i]}`)
+    } catch (error) {
+      console.error(`删除旧证书 ${deleteIdList[i]} 失败:`, error.message || error)
     }
   }
+
+  // 使用新 ID 添加证书
+  const newId = String(Date.now())
+  
+  const save = {
+    snis: sslInfo.snis,
+    cert: sslInfo.cert,
+    key: sslInfo.key,
+    validity_start: sslInfo.validity_start,
+    validity_end: sslInfo.validity_end,
+    labels: {
+      acme: "ok",
+    },
+  }
+  
+  if (compareVersions(version, '3.0.0') >= 0) {
+    // https://github.com/apache/apisix/pull/10323
+    // https://apisix.apache.org/zh/blog/2023/11/21/release-apache-apisix-3.7.0/
+    // 修复 invalid configuration: additional properties forbidden, found validity_end
+    if (compareVersions(version, '3.7.0') >= 0) {
+      delete save.validity_start
+      delete save.validity_end
+    }
+    await v3.setupSsl(newId, save)
+  } else {
+    await v2.setupSsl(newId, save)
+  }
+  
+  console.log(`已添加新证书: ${newId}`)
 }
 
 // 把 host 加到某个 service 下

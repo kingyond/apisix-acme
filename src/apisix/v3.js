@@ -53,7 +53,21 @@ async function setupSsl(id, data) {
   })
 }
 
+/**
+ * 删除 SSL 证书
+ * @param {string} id 证书ID
+ * @returns {Promise<void>}
+ */
+async function deleteSsl(id) {
+  return axios.request({
+    method: 'DELETE',
+    headers: { 'X-API-KEY': config.apisix_token },
+    url: `${config.apisix_host}/apisix/admin/ssls/${id}`
+  });
+}
+
 export default {
   sslList,
   setupSsl,
+  deleteSsl,
 }
