@@ -4,7 +4,8 @@ on:
   push:
     tags:
       - '*'
-
+  workflow_dispatch: # 添加手动触发支持
+  
 jobs:
   build:
     runs-on: ubuntu-latest
