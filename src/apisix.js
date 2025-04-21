@@ -224,9 +224,9 @@ async function applySSL(domain, sslInfo) {
   // 收集需要删除的旧证书 ID
   const deleteIdList = []
   sslList.forEach(item => {
-    if (item.validity_end < sslInfo.validity_end) {
+    // if (item.validity_end < sslInfo.validity_end) {
       deleteIdList.push(item.id)
-    }
+    // }
   })
 
   // 删除所有旧证书
